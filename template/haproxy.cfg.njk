@@ -1,0 +1,48 @@
+global
+    log 127.0.0.1   local0
+    log 127.0.0.1   local1 notice
+    maxconn 4096
+    user haproxy
+    group haproxy
+    daemon
+
+defaults
+    log global
+    mode http
+    option httplog
+    option dontlognull
+    option forwardfor
+    option http-server-close
+    timeout connect 5000
+    timeout client 50000
+    timeout server 50000
+
+# Define frontends
+
+frontend http
+    bind :80
+    {% for service in services %}
+    {%- if (service.configMode == "host") %}
+    acl {{ service.serviceName }} hdr(host) -i {{ service.predicate }}
+    {% endif -%}
+
+    {%- if (service.configMode == "path") %}
+    acl {{ service.serviceName }} url_beg /{{ service.predicate }}
+    {% endif -%}
+
+    use_backend {{ service.serviceName }} if {{ service.serviceName }}
+    {% endfor %}
+
+# Define backends
+{% for service in services %}
+backend {{ service.serviceName }}
+    mode http
+    balance roundrobin
+    option forwardfor
+    {% if service.cookie -%}
+    cookie {{ service.cookie }} prefix nocache
+    {% endif %}
+    {%- for container in service.containers %}
+    server {{ container.id }} {{ container.ip }} check {% if service.cookie %}cookie {{ container.id }}{% endif %}
+    {% endfor -%}
+{% endfor -%}
