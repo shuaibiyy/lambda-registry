@@ -136,18 +136,18 @@ function dedupe (arr) {
 /**
  * Cleanse data retrieved from store so it does not contain services and containers that no longer exist.
  *
- * @param storedConfig
- * @param liveConfig
+ * @param storedServices Config from DB.
+ * @param liveServices Config from Lambda event.
  */
-function cleanse (storedConfig, liveConfig) {
-  const getLiveAttributeSet = (attr) => new Set(liveConfig.services.map(i => i[attr]))
-  const isServiceAvailable = i => getLiveAttributeSet('serviceName').has(i.serviceName)
-  const isContainerAvailable = i => getLiveAttributeSet('id').has(i.id)
+function cleanse (storedServices, liveServices) {
+  const getLiveServicesAttributeSet = (attr) => new Set(liveServices.services.map(i => i[attr]))
+  const isServiceAvailable = i => getLiveServicesAttributeSet('serviceName').has(i.serviceName)
+  const isContainerAvailable = i => getLiveServicesAttributeSet('id').has(i.id)
 
-  const availableServices = storedConfig.filter(isServiceAvailable)
+  const availableServices = storedServices.filter(isServiceAvailable)
   availableServices.forEach(i => i.containers = i.containers.filter(isContainerAvailable))
 
-  const unavailableServices = storedConfig.filter(i => !isServiceAvailable(i))
+  const unavailableServices = storedServices.filter(i => !isServiceAvailable(i))
 
   const deferreds = unavailableServices.map(i => {
     let defer = Q.defer()
@@ -163,21 +163,21 @@ function cleanse (storedConfig, liveConfig) {
 /**
  * Merge both data structures so that the one returned contains a set of containers from both.
  *
- * @param updatedConfig
- * @param liveConfig
+ * @param updatedServices Cleansed services data from DB.
+ * @param liveServices Config from Lambda event.
  * @returns {*}
  */
-function merge (updatedConfig, liveConfig) {
-  const storedServices = new Set(updatedConfig.map(i => i.serviceName))
+function merge (updatedServices, liveServices) {
+  const storedServices = new Set(updatedServices.map(i => i.serviceName))
 
   const doesStoredServicesContainService = i => storedServices.has(i.serviceName)
-  const filterCandidateServices = fn => liveConfig.candidateServices.filter(fn)
+  const filterCandidateServices = fn => liveServices.candidateServices.filter(fn)
 
   const existingServices = filterCandidateServices(doesStoredServicesContainService)
   const newServices = filterCandidateServices(i => !doesStoredServicesContainService(i))
-  const containersTiedToExistingServices = liveConfig.services.filter(doesStoredServicesContainService)
+  const containersTiedToExistingServices = liveServices.services.filter(doesStoredServicesContainService)
 
-  updatedConfig.forEach(i => {
+  updatedServices.forEach(i => {
 
     existingServices.forEach(j => {
       if (i.serviceName === j.serviceName)
@@ -195,43 +195,40 @@ function merge (updatedConfig, liveConfig) {
     i.containers = dedupe(i.containers)
   })
 
-  return {
-    updatedConfig: updatedConfig,
-    newConfig: newServices
-  }
+  return { updatedServices, newServices }
 }
 
 /**
  * Persist merged config to DynamoDB.
  *
- * @param mergedConfig
+ * @param allServices Object containing updated and new services.
  * @returns {!Promise.<!Array>}
  */
-function persist (mergedConfig) {
-  const updateDeferreds = mergedConfig.updatedConfig.map(i => {
+function persist (allServices) {
+  const updateDeferreds = allServices.updatedServices.map(i => {
     let defer = Q.defer()
     Service.update(i, defer.makeNodeResolver())
     return defer
   })
 
   const createDeferred = Q.defer()
-  Service.create(mergedConfig.newConfig, createDeferred.makeNodeResolver())
+  Service.create(allServices.newServices, createDeferred.makeNodeResolver())
 
   return Q.all(updateDeferreds.concat(createDeferred))
 }
 
 /**
- * Generate configuration file from data received from DynamoDB.
+ * Generate configuration file using services data returned by persistence operation.
  *
- * @param configData
+ * @param servicesData Array containing results of saving new and updated services.
  */
-function generateConfigFile (configData) {
-  const flattenedConfigData = [].concat.apply([], configData)
-  const config = flattenedConfigData.map(i => i.get())
+function generateConfigFile (servicesData) {
+  const flattenedData = [].concat.apply([], servicesData)
+  const services = flattenedData.map(i => i.get())
 
   nunjucks.configure('template', { autoescape: true })
 
-  return nunjucks.render('haproxy.cfg.njk', {services: config})
+  return nunjucks.render('haproxy.cfg.njk', {services})
 }
 
 /**
@@ -251,9 +248,9 @@ exports.handler = (event, context, callback) => {
   maybeCreateTable()
     .then(scanTable)
     .then(data => cleanse(extractAttrs(data), event))
-    .then(updatedConfig => merge(updatedConfig, event))
+    .then(updatedServices => merge(updatedServices, event))
     .then(persist)
     .then(generateConfigFile)
     .then(configFile => context.done(null, configFile))
-    .fail(err => context.done(err))
+    .fail(err => context.done(err.stack))
 }
