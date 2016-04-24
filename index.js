@@ -228,7 +228,7 @@ function generateConfigFile (servicesData) {
 
   nunjucks.configure('template', { autoescape: true })
 
-  return nunjucks.render('haproxy.cfg.njk', {services})
+  return nunjucks.render('haproxy.cfg.njk', { services })
 }
 
 /**
