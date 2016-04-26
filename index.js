@@ -242,15 +242,19 @@ exports.handler = (event, context, callback) => {
   console.log('Received event:', JSON.stringify(event, null, 2))
 
   const extractAttrs = data => data.Items.map(item => item.attrs)
+  const cleanseUsingLiveServices = (storedServices) => cleanse(extractAttrs(storedServices), event)
+  const mergeWithLiveServices = (storedServices) => merge(storedServices, event)
+  const handlerSuccess = configFile => context.done(null, configFile)
+  const handlerFailure = err => context.done(err.stack)
 
   Service.config({tableName: event.tableName})
 
   maybeCreateTable()
     .then(scanTable)
-    .then(data => cleanse(extractAttrs(data), event))
-    .then(updatedServices => merge(updatedServices, event))
+    .then(cleanseUsingLiveServices)
+    .then(mergeWithLiveServices)
     .then(persist)
     .then(generateConfigFile)
-    .then(configFile => context.done(null, configFile))
-    .fail(err => context.done(err.stack))
+    .then(handlerSuccess)
+    .fail(handlerFailure)
 }
