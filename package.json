@@ -1,5 +1,5 @@
 {
-  "name": "Astronaut",
+  "name": "cosmos",
   "version": "1.0.0",
   "description": "HAProxy Configuration File Generation Using AWS Lambda and DynamoDB",
   "main": "index.js",
@@ -14,6 +14,6 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
+  "author": "Shuaib Yunus",
   "license": "MIT"
 }

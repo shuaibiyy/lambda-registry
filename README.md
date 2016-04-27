@@ -1,4 +1,4 @@
-# Astronaut
+# Cosmos
 
 This project uses [AWS Lambda](https://aws.amazon.com/lambda/), [API Gateway](https://aws.amazon.com/api-gateway/) and [DynamoDB](https://aws.amazon.com/dynamodb/) to create an API endpoint that can be used to generate a `haproxy.cfg` file based on the parameters provided.
 
