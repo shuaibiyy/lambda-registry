@@ -43,6 +43,6 @@ backend {{ service.serviceName }}
     cookie {{ service.cookie }} prefix nocache
     {% endif %}
     {%- for container in service.containers %}
-    server {{ container.id }} {{ container.ip }} check {% if service.cookie %}cookie {{ container.id }}{% endif %}
+    server {{ container.id }} {{ container.ip }} check {% if service.cookie %}cookie {{ service.cookie }}{% endif %}
     {% endfor -%}
 {% endfor -%}

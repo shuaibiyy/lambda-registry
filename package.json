@@ -10,9 +10,12 @@
     "nunjucks": "^2.4.1",
     "vogels": "^2.2.0"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "babel-tape-runner": "^2.0.1",
+    "blue-tape": "^0.2.0"
+  },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "./node_modules/babel-tape-runner/bin/babel-tape-runner test.js"
   },
   "author": "Shuaib Yunus",
   "license": "MIT"

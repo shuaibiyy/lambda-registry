@@ -1,6 +1,6 @@
 module.exports = {
   "tableName": "astro",
-  "services": [
+  "runningServices": [
     {
       "serviceName": "app1",
       "id": "gsda7843hj2b",

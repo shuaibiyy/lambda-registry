@@ -1,6 +1,6 @@
 {
   "tableName": "astro",
-  "services": [
+  "runningServices": [
     {
       "serviceName": "app1",
       "id": "kml4nk654m3",

@@ -60,11 +60,13 @@ function createDynamoDB () {
   return vogels
 }
 
+function Cosmos () {}
+
 /**
  * Create table if it does not exist already.
  * @returns {*}
  */
-function maybeCreateTable () {
+Cosmos.prototype.maybeCreateTable = function () {
   const defer = Q.defer()
 
   const createCallback = (err) => {
@@ -96,7 +98,7 @@ function maybeCreateTable () {
  *
  * @returns {!Promise}
  */
-function scanTable () {
+Cosmos.prototype.scanTable = function () {
   const defer = Q.defer()
 
   Service
@@ -115,7 +117,7 @@ function scanTable () {
  * @param arr
  * @returns {Array}
  */
-function dedupe (arr) {
+Cosmos.prototype.dedupe = function (arr) {
   let tmpMap = {}
   arr.forEach(function (val) {
     let uniquekey = ''
@@ -139,8 +141,8 @@ function dedupe (arr) {
  * @param storedServices Config from DB.
  * @param liveServices Config from Lambda event.
  */
-function cleanse (storedServices, liveServices) {
-  const getLiveServicesAttributeSet = (attr) => new Set(liveServices.services.map(i => i[attr]))
+Cosmos.prototype.cleanse = function (storedServices, liveServices) {
+  const getLiveServicesAttributeSet = (attr) => new Set(liveServices.runningServices.map(i => i[attr]))
   const isServiceAvailable = i => getLiveServicesAttributeSet('serviceName').has(i.serviceName)
   const isContainerAvailable = i => getLiveServicesAttributeSet('id').has(i.id)
 
@@ -167,7 +169,7 @@ function cleanse (storedServices, liveServices) {
  * @param liveServices Config from Lambda event.
  * @returns {*}
  */
-function merge (updatedServices, liveServices) {
+Cosmos.prototype.merge = function (updatedServices, liveServices) {
   const storedServices = new Set(updatedServices.map(i => i.serviceName))
 
   const doesStoredServicesContainService = i => storedServices.has(i.serviceName)
@@ -175,7 +177,7 @@ function merge (updatedServices, liveServices) {
 
   const existingServices = filterCandidateServices(doesStoredServicesContainService)
   const newServices = filterCandidateServices(i => !doesStoredServicesContainService(i))
-  const containersTiedToExistingServices = liveServices.services.filter(doesStoredServicesContainService)
+  const containersTiedToExistingServices = liveServices.runningServices.filter(doesStoredServicesContainService)
 
   updatedServices.forEach(i => {
 
@@ -192,7 +194,7 @@ function merge (updatedServices, liveServices) {
         })
     })
 
-    i.containers = dedupe(i.containers)
+    i.containers = Cosmos.prototype.dedupe.call(null, i.containers)
   })
 
   return { updatedServices, newServices }
@@ -204,7 +206,7 @@ function merge (updatedServices, liveServices) {
  * @param allServices Object containing updated and new services.
  * @returns {!Promise.<!Array>}
  */
-function persist (allServices) {
+Cosmos.prototype.persist = function (allServices) {
   const updateDeferreds = allServices.updatedServices.map(i => {
     let defer = Q.defer()
     Service.update(i, defer.makeNodeResolver())
@@ -222,7 +224,7 @@ function persist (allServices) {
  *
  * @param servicesData Array containing results of saving new and updated services.
  */
-function generateConfigFile (servicesData) {
+Cosmos.prototype.generateConfigFile = function (servicesData) {
   const flattenedData = [].concat.apply([], servicesData)
   const services = flattenedData.map(i => i.get())
 
@@ -231,6 +233,9 @@ function generateConfigFile (servicesData) {
   return nunjucks.render('haproxy.cfg.njk', { services })
 }
 
+// Used by tests.
+exports.Cosmos = Cosmos
+
 /**
  * Entry point that will be called by AWS Lambda service.
  *
@@ -238,23 +243,25 @@ function generateConfigFile (servicesData) {
  * @param context
  * @param callback
  */
-exports.handler = (event, context, callback) => {
+exports.handler = function (event, context, callback) {
   console.log('Received event:', JSON.stringify(event, null, 2))
 
+  const cosmos = new Cosmos()
+
   const extractAttrs = data => data.Items.map(item => item.attrs)
-  const cleanseUsingLiveServices = (storedServices) => cleanse(extractAttrs(storedServices), event)
-  const mergeWithLiveServices = (storedServices) => merge(storedServices, event)
+  const cleanseUsingLiveServices = (storedServices) => cosmos.cleanse(extractAttrs(storedServices), event)
+  const mergeWithLiveServices = (storedServices) => cosmos.merge(storedServices, event)
   const handlerSuccess = configFile => context.done(null, configFile)
   const handlerFailure = err => context.done(err.stack)
 
   Service.config({tableName: event.tableName})
 
-  maybeCreateTable()
-    .then(scanTable)
+  cosmos.maybeCreateTable()
+    .then(cosmos.scanTable)
     .then(cleanseUsingLiveServices)
     .then(mergeWithLiveServices)
-    .then(persist)
-    .then(generateConfigFile)
+    .then(cosmos.persist)
+    .then(cosmos.generateConfigFile)
     .then(handlerSuccess)
     .fail(handlerFailure)
 }
