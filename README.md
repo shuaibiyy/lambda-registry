@@ -10,8 +10,8 @@ You need to have [Terraform](https://www.terraform.io/) installed and a function
 
 Follow these steps to deploy:
 
-1. Install NPM modules: `npm install`
-2. Compress the project: `zip -r haproxy_config_generator.zip .`.
+1. Install NPM modules: `npm install --production`
+2. Compress the project: `zip -r cosmos.zip .`.
 3. Deploy the project by simply invoking `terraform apply`. You'll be asked for your AWS credentials. If you don't want to be prompted, you can add your credentials to the `variables.tf` file or run the setup using:
 ```bash
 terraform apply -var 'aws_access_key={your_aws_access_key}' \
@@ -23,7 +23,7 @@ To tear down:
 terraform destroy
 ```
 
-You can find the Invoke URL for the API endpoint created via the AWS console for API Gateway. The steps look like: `Amazon API Gateway | APIs > haproxy_config_generator > Stages > api`.
+You can find the Invoke URL for the API endpoint created via the AWS console for API Gateway. The steps look like: `Amazon API Gateway | APIs > cosmos > Stages > api`.
 
 You can generate the config file by running these commands:
 ```bash

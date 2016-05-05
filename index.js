@@ -66,7 +66,7 @@ function Cosmos () {}
  * Create table if it does not exist already.
  * @returns {*}
  */
-Cosmos.prototype.maybeCreateTable = function () {
+Cosmos.prototype.maybeCreateTable = () => {
   const defer = Q.defer()
 
   const createCallback = (err) => {
@@ -98,7 +98,7 @@ Cosmos.prototype.maybeCreateTable = function () {
  *
  * @returns {!Promise}
  */
-Cosmos.prototype.scanTable = function () {
+Cosmos.prototype.scanTable = () => {
   const defer = Q.defer()
 
   Service
@@ -117,9 +117,9 @@ Cosmos.prototype.scanTable = function () {
  * @param arr
  * @returns {Array}
  */
-Cosmos.prototype.dedupe = function (arr) {
+Cosmos.prototype.dedupe = (arr) => {
   let tmpMap = {}
-  arr.forEach(function (val) {
+  arr.forEach( val => {
     let uniquekey = ''
     for (var k in val) {
       if (val.hasOwnProperty(k) && val[k]) {
@@ -138,11 +138,14 @@ Cosmos.prototype.dedupe = function (arr) {
 /**
  * Cleanse data retrieved from store so it does not contain services and containers that no longer exist.
  *
- * @param storedServices Config from DB.
- * @param liveServices Config from Lambda event.
+ * @param storedData Config from DB.
+ * @param liveData Config from Lambda event.
  */
-Cosmos.prototype.cleanse = function (storedServices, liveServices) {
-  const getLiveServicesAttributeSet = (attr) => new Set(liveServices.runningServices.map(i => i[attr]))
+Cosmos.prototype.cleanse = (storedData, liveData) => {
+  let storedServices = storedData.Items.map(item => item.attrs)
+  storedServices = storedServices.length > 0 ? storedServices[0] : []
+
+  const getLiveServicesAttributeSet = (attr) => new Set(liveData.runningServices.map(i => i[attr]))
   const isServiceAvailable = i => getLiveServicesAttributeSet('serviceName').has(i.serviceName)
   const isContainerAvailable = i => getLiveServicesAttributeSet('id').has(i.id)
 
@@ -151,36 +154,39 @@ Cosmos.prototype.cleanse = function (storedServices, liveServices) {
 
   const unavailableServices = storedServices.filter(i => !isServiceAvailable(i))
 
-  const deferreds = unavailableServices.map(i => {
+  return { unavailableServices, availableServices }
+}
+
+
+Cosmos.prototype.persistCleanseOutcome = (services) => {
+  const deferreds = services.unavailableServices.map(i => {
     let defer = Q.defer()
     Service.destroy(i, defer.makeNodeResolver())
     return defer
   })
 
   return Q.all(deferreds)
-    .then((content) => availableServices)
+    .then((content) => services.availableServices)
 }
-
 
 /**
  * Merge both data structures so that the one returned contains a set of containers from both.
  *
  * @param updatedServices Cleansed services data from DB.
- * @param liveServices Config from Lambda event.
+ * @param liveData Config from Lambda event.
  * @returns {*}
  */
-Cosmos.prototype.merge = function (updatedServices, liveServices) {
+Cosmos.prototype.merge = (updatedServices, liveData) => {
   const storedServices = new Set(updatedServices.map(i => i.serviceName))
 
   const doesStoredServicesContainService = i => storedServices.has(i.serviceName)
-  const filterCandidateServices = fn => liveServices.candidateServices.filter(fn)
+  const filterCandidateServices = fn => liveData.candidateServices.filter(fn)
 
   const existingServices = filterCandidateServices(doesStoredServicesContainService)
   const newServices = filterCandidateServices(i => !doesStoredServicesContainService(i))
-  const containersTiedToExistingServices = liveServices.runningServices.filter(doesStoredServicesContainService)
+  const containersTiedToExistingServices = liveData.runningServices.filter(doesStoredServicesContainService)
 
   updatedServices.forEach(i => {
-
     existingServices.forEach(j => {
       if (i.serviceName === j.serviceName)
         i.containers = i.containers.concat(j.containers)
@@ -206,7 +212,7 @@ Cosmos.prototype.merge = function (updatedServices, liveServices) {
  * @param allServices Object containing updated and new services.
  * @returns {!Promise.<!Array>}
  */
-Cosmos.prototype.persist = function (allServices) {
+Cosmos.prototype.persistAll = (allServices) => {
   const updateDeferreds = allServices.updatedServices.map(i => {
     let defer = Q.defer()
     Service.update(i, defer.makeNodeResolver())
@@ -224,7 +230,7 @@ Cosmos.prototype.persist = function (allServices) {
  *
  * @param servicesData Array containing results of saving new and updated services.
  */
-Cosmos.prototype.generateConfigFile = function (servicesData) {
+Cosmos.prototype.generateConfigFile = (servicesData) => {
   const flattenedData = [].concat.apply([], servicesData)
   const services = flattenedData.map(i => i.get())
 
@@ -243,14 +249,13 @@ exports.Cosmos = Cosmos
  * @param context
  * @param callback
  */
-exports.handler = function (event, context, callback) {
+exports.handler = (event, context, callback) => {
   console.log('Received event:', JSON.stringify(event, null, 2))
 
   const cosmos = new Cosmos()
 
-  const extractAttrs = data => data.Items.map(item => item.attrs)
-  const cleanseUsingLiveServices = (storedServices) => cosmos.cleanse(extractAttrs(storedServices), event)
-  const mergeWithLiveServices = (storedServices) => cosmos.merge(storedServices, event)
+  const cleanseAgainstLiveData = (storedData) => cosmos.cleanse(storedData, event)
+  const mergeWithLiveData = (storedServices) => cosmos.merge(storedServices, event)
   const handlerSuccess = configFile => context.done(null, configFile)
   const handlerFailure = err => context.done(err.stack)
 
@@ -258,9 +263,10 @@ exports.handler = function (event, context, callback) {
 
   cosmos.maybeCreateTable()
     .then(cosmos.scanTable)
-    .then(cleanseUsingLiveServices)
-    .then(mergeWithLiveServices)
-    .then(cosmos.persist)
+    .then(cleanseAgainstLiveData)
+    .then(cosmos.persistCleanseOutcome)
+    .then(mergeWithLiveData)
+    .then(cosmos.persistAll)
     .then(cosmos.generateConfigFile)
     .then(handlerSuccess)
     .fail(handlerFailure)
