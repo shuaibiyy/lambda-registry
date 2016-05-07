@@ -142,12 +142,23 @@ Cosmos.prototype.dedupe = (arr) => {
  * @param liveData Config from Lambda event.
  */
 Cosmos.prototype.cleanse = (storedData, liveData) => {
-  let storedServices = storedData.Items.map(item => item.attrs)
-  storedServices = storedServices.length > 0 ? storedServices[0] : []
+  let storedServices = storedData.Items.map(item => item.attrs) // []
+
+  storedServices = storedServices.length > 0 ?
+    !Array.isArray(storedServices[0]) ?
+      [storedServices[0]]
+      : storedServices[0]
+    : []
+
+  if (!Array.isArray(storedServices)) {
+    storedServices = [storedServices]
+  }
 
   const getLiveServicesAttributeSet = (attr) => new Set(liveData.runningServices.map(i => i[attr]))
   const isServiceAvailable = i => getLiveServicesAttributeSet('serviceName').has(i.serviceName)
   const isContainerAvailable = i => getLiveServicesAttributeSet('id').has(i.id)
+
+  console.log(storedServices)
 
   const availableServices = storedServices.filter(isServiceAvailable)
   availableServices.forEach(i => i.containers = i.containers.filter(isContainerAvailable))
