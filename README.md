@@ -6,7 +6,7 @@ One major pain point of using Lambda and API Gateway is the difficulty of settin
 
 You need to have [Terraform](https://www.terraform.io/) installed and a functioning [AWS](https://aws.amazon.com/) account to deploy this project.
 
-## Usage
+## Setup
 
 Follow these steps to deploy:
 
@@ -23,7 +23,13 @@ To tear down:
 terraform destroy
 ```
 
-You can find the Invoke URL for the API endpoint created via the AWS console for API Gateway. The steps look like: `Amazon API Gateway | APIs > cosmos > Stages > api`.
+You can find the Invoke URL for Cosmos endpoint via the API Gateway service's console. The steps look like: `Amazon API Gateway | APIs > cosmos > Stages > api`.
+
+## Usage
+
+Cosmos was written to fulfill the deployment architecture described here: [HAProxy Configuration Management with Cosmos and Cosmonaut](https://callme.ninja/haproxy-config-mgmt-cosmos-cosmonaut/).
+
+[Cosmonaut](https://github.com/shuaibiyy/cosmonaut) is a process that can listen to events from a docker daemon, retrieve a HAProxy configuration from Cosmos based on the services running on its host, and use it to reload its host's HAProxy container.
 
 You can generate the config file by running these commands:
 ```bash
@@ -41,7 +47,7 @@ lambda-local -l index.js -h handler -e sample-data/data.js
 
 ### Customizing the Project
 
-The Lambda handler expects an `event` with the structure documented in `index.js`. This structure is only relevant because the [Nunjucks](https://github.com/mozilla/nunjucks) template file (`template/haproxy.cfg.njk`) relies on it to interpolate values in the right places. You can pass in any `event` structure you want as long as you modify the Nunjucks template file to understand it.
+The Lambda handler expects an `event` with the structure documented in `index.js`. The [Nunjucks](https://github.com/mozilla/nunjucks) template file (`template/haproxy.cfg.njk`) relies on event structure to interpolate values in the right places. You can pass in any `event` structure you want as long as you modify the Nunjucks template file to understand it.
 
 ## Notes
 
