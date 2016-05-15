@@ -18,10 +18,6 @@ resource "aws_iam_role" "cosmos_iam" {
 resource "aws_s3_bucket" "cosmos" {
   bucket = "${var.s3_bucket}"
   acl = "private"
-
-  provisioner "local-exec" {
-    command = "npm install --production && zip -r cosmos.zip ."
-  }
 }
 
 resource "aws_s3_bucket_object" "lambda_function" {
