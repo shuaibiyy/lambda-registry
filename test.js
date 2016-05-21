@@ -45,8 +45,8 @@ test('Cleansed stored data should not contain services and containers that no lo
   const storedData = {Items: [{attrs: storedServices}]}
   const liveData = testData
 
-  const expectedUnavailableServices = storedServices.filter(i => i['serviceName'] === 'app2')
-  const expectedAvailableServices =
+  const expectedUnavailableSrvcs = storedServices.filter(i => i['serviceName'] === 'app2')
+  const expectedAvailableSrvcs =
     [{
       configMode: 'host',
       predicate: 'first.example.com',
@@ -59,13 +59,13 @@ test('Cleansed stored data should not contain services and containers that no lo
     }]
 
   const cosmos = new Cosmos()
-  const services = cosmos.cleanse(storedData, liveData)
-  const expectedServices = {
-    unavailableServices: expectedUnavailableServices,
-    availableServices: expectedAvailableServices
+  const srvcs = cosmos.cleanse(storedData, liveData)
+  const expectedSrvcs = {
+    unavailableSrvcs: expectedUnavailableSrvcs,
+    availableSrvcs: expectedAvailableSrvcs
   }
 
-  t.deepEqual(services, expectedServices)
+  t.deepEqual(srvcs, expectedSrvcs)
 })
 
 test('Merging stored and live services should result in services with containers from both', t => {
@@ -105,7 +105,7 @@ test('Merging stored and live services should result in services with containers
 
   const liveData = testData
 
-  const updatedServices = [{
+  const updatedSrvcs = [{
     serviceName: 'app1',
     configMode: 'host',
     predicate: 'first.example.com',
@@ -120,7 +120,7 @@ test('Merging stored and live services should result in services with containers
     }]
   }]
 
-  const newServices = [{
+  const newSrvcs = [{
     "serviceName": "app2",
     "configMode": "host",
     "predicate": "second.example.com",
@@ -135,7 +135,7 @@ test('Merging stored and live services should result in services with containers
     }]
   }]
 
-  const expectedServices = { updatedServices, newServices }
+  const expectedServices = { updatedSrvcs, newSrvcs }
 
   const cosmos = new Cosmos()
   const services = cosmos.merge(storedServices, liveData)

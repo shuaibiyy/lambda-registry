@@ -142,68 +142,66 @@ Cosmos.prototype.dedupe = (arr) => {
  * @param liveData Config from Lambda event.
  */
 Cosmos.prototype.cleanse = (storedData, liveData) => {
-  let storedServices = storedData.Items.map(item => item.attrs) // []
+  let storedSrvcs = storedData.Items.map(item => item.attrs) // []
 
-  storedServices = storedServices.length > 0 ?
-    !Array.isArray(storedServices[0]) ?
-      [storedServices[0]]
-      : storedServices[0]
+  storedSrvcs = storedSrvcs.length > 0 ?
+    !Array.isArray(storedSrvcs[0]) ?
+      [storedSrvcs[0]]
+      : storedSrvcs[0]
     : []
 
-  if (!Array.isArray(storedServices)) {
-    storedServices = [storedServices]
+  if (!Array.isArray(storedSrvcs)) {
+    storedSrvcs = [storedSrvcs]
   }
 
-  const getLiveServicesAttributeSet = (attr) => new Set(liveData.runningServices.map(i => i[attr]))
-  const isServiceAvailable = i => getLiveServicesAttributeSet('serviceName').has(i.serviceName)
-  const isContainerAvailable = i => getLiveServicesAttributeSet('id').has(i.id)
+  const srvcsAttrSet = (attr) => new Set(liveData.runningServices.map(i => i[attr]))
+  const srvcAvailable = i => srvcsAttrSet('serviceName').has(i.serviceName)
+  const containerAvailable = i => srvcsAttrSet('id').has(i.id)
 
-  console.log(storedServices)
+  const availableSrvcs = storedSrvcs.filter(srvcAvailable)
+  availableSrvcs.forEach(i => i.containers = i.containers.filter(containerAvailable))
 
-  const availableServices = storedServices.filter(isServiceAvailable)
-  availableServices.forEach(i => i.containers = i.containers.filter(isContainerAvailable))
+  const unavailableSrvcs = storedSrvcs.filter(i => !srvcAvailable(i))
 
-  const unavailableServices = storedServices.filter(i => !isServiceAvailable(i))
-
-  return { unavailableServices, availableServices }
+  return { unavailableSrvcs, availableSrvcs }
 }
 
 
-Cosmos.prototype.persistCleanseOutcome = (services) => {
-  const deferreds = services.unavailableServices.map(i => {
+Cosmos.prototype.persistCleansedData = (services) => {
+  const deferreds = services.unavailableSrvcs.map(i => {
     let defer = Q.defer()
     Service.destroy(i, defer.makeNodeResolver())
     return defer
   })
 
   return Q.all(deferreds)
-    .then((content) => services.availableServices)
+    .then((content) => services.availableSrvcs)
 }
 
 /**
  * Merge both data structures so that the one returned contains a set of containers from both.
  *
- * @param updatedServices Cleansed services data from DB.
+ * @param updatedSrvcs Cleansed services data from DB.
  * @param liveData Config from Lambda event.
  * @returns {*}
  */
-Cosmos.prototype.merge = (updatedServices, liveData) => {
-  const storedServices = new Set(updatedServices.map(i => i.serviceName))
+Cosmos.prototype.merge = (updatedSrvcs, liveData) => {
+  const storedServices = new Set(updatedSrvcs.map(i => i.serviceName))
 
-  const doesStoredServicesContainService = i => storedServices.has(i.serviceName)
-  const filterCandidateServices = fn => liveData.candidateServices.filter(fn)
+  const storedSrvcsContainSrvc = i => storedServices.has(i.serviceName)
+  const filterCandidateSrvcs = fn => liveData.candidateServices.filter(fn)
 
-  const existingServices = filterCandidateServices(doesStoredServicesContainService)
-  const newServices = filterCandidateServices(i => !doesStoredServicesContainService(i))
-  const containersTiedToExistingServices = liveData.runningServices.filter(doesStoredServicesContainService)
+  const existingServices = filterCandidateSrvcs(storedSrvcsContainSrvc)
+  const newSrvcs = filterCandidateSrvcs(i => !storedSrvcsContainSrvc(i))
+  const containersTiedToExistingSrvcs = liveData.runningServices.filter(storedSrvcsContainSrvc)
 
-  updatedServices.forEach(i => {
+  updatedSrvcs.forEach(i => {
     existingServices.forEach(j => {
       if (i.serviceName === j.serviceName)
         i.containers = i.containers.concat(j.containers)
     })
 
-    containersTiedToExistingServices.forEach(j => {
+    containersTiedToExistingSrvcs.forEach(j => {
       if (i.serviceName === j.serviceName)
         i.containers = i.containers.concat({
           id: j.id,
@@ -214,24 +212,24 @@ Cosmos.prototype.merge = (updatedServices, liveData) => {
     i.containers = Cosmos.prototype.dedupe.call(null, i.containers)
   })
 
-  return { updatedServices, newServices }
+  return { updatedSrvcs, newSrvcs }
 }
 
 /**
  * Persist merged config to DynamoDB.
  *
- * @param allServices Object containing updated and new services.
+ * @param allSrvcs Object containing updated and new services.
  * @returns {!Promise.<!Array>}
  */
-Cosmos.prototype.persistAll = (allServices) => {
-  const updateDeferreds = allServices.updatedServices.map(i => {
+Cosmos.prototype.persistAll = (allSrvcs) => {
+  const updateDeferreds = allSrvcs.updatedSrvcs.map(i => {
     let defer = Q.defer()
     Service.update(i, defer.makeNodeResolver())
     return defer
   })
 
   const createDeferred = Q.defer()
-  Service.create(allServices.newServices, createDeferred.makeNodeResolver())
+  Service.create(allSrvcs.newSrvcs, createDeferred.makeNodeResolver())
 
   return Q.all(updateDeferreds.concat(createDeferred))
 }
@@ -265,8 +263,8 @@ exports.handler = (event, context, callback) => {
 
   const cosmos = new Cosmos()
 
-  const cleanseAgainstLiveData = (storedData) => cosmos.cleanse(storedData, event)
-  const mergeWithLiveData = (storedServices) => cosmos.merge(storedServices, event)
+  const storedDataCleanse = (storedData) => cosmos.cleanse(storedData, event)
+  const mergeAllData = (storedSrvcs) => cosmos.merge(storedSrvcs, event)
   const handlerSuccess = configFile => context.done(null, configFile)
   const handlerFailure = err => context.done(err.stack)
 
@@ -274,9 +272,9 @@ exports.handler = (event, context, callback) => {
 
   cosmos.maybeCreateTable()
     .then(cosmos.scanTable)
-    .then(cleanseAgainstLiveData)
-    .then(cosmos.persistCleanseOutcome)
-    .then(mergeWithLiveData)
+    .then(storedDataCleanse)
+    .then(cosmos.persistCleansedData)
+    .then(mergeAllData)
     .then(cosmos.persistAll)
     .then(cosmos.generateConfigFile)
     .then(handlerSuccess)

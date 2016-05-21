@@ -16,13 +16,13 @@ Follow these steps to deploy:
 2. Compress the project: `zip -r cosmos.zip .`.
 3. Deploy the project by simply invoking `terraform apply`. You'll be asked for your AWS credentials. If you don't want to be prompted, you can add your credentials to the `variables.tf` file or run the setup using:
 ```bash
-terraform apply -var 'aws_access_key={your_aws_access_key}' \
+$> terraform apply -var 'aws_access_key={your_aws_access_key}' \
    -var 'aws_secret_key={your_aws_secret_key}'
 ```
 
 To tear down:
 ```bash
-terraform destroy
+$> terraform destroy
 ```
 
 You can find the Invoke URL for Cosmos endpoint via the API Gateway service's console. The steps look like: `Amazon API Gateway | APIs > cosmos > Stages > api`.
@@ -35,16 +35,22 @@ Cosmos was written to fulfill the deployment architecture described here: [HAPro
 
 You can generate the config file by running these commands:
 ```bash
-$ curl -o /tmp/haproxycfg -H "Content-Type: application/json" --data @sample-data/data.json <invoke_url>/generate
-$ echo "$(</tmp/haproxycfg)" > haproxy.cfg
-$ rm /tmp/haproxycfg
+$> curl -o /tmp/haproxycfg -H "Content-Type: application/json" --data @sample-data/data.json <invoke_url>/generate
+$> echo "$(</tmp/haproxycfg)" > haproxy.cfg
+$> rm /tmp/haproxycfg
 ```
 
 ### Running Locally
 
 You can run Lambda functions locally using [Lambda-local](https://github.com/ashiina/lambda-local) with a command like:
 ```bash
-lambda-local -l index.js -h handler -e sample-data/data.js
+$> lambda-local -l index.js -h handler -e sample-data/data.js
+```
+
+### Running Tests
+
+```
+$> npm test
 ```
 
 ### Customizing the Project
