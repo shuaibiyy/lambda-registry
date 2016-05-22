@@ -1,6 +1,6 @@
 {
-  "tableName": "astro",
-  "runningServices": [
+  "table": "astro",
+  "running": [
     {
       "serviceName": "app1",
       "id": "kml4nk654m3",
@@ -22,7 +22,7 @@
       "ip": "192.168.1.7:80"
     }
   ],
-  "candidateServices": [
+  "candidates": [
     {
       "serviceName": "app1",
       "configMode": "host",

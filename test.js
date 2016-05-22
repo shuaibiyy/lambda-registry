@@ -101,7 +101,7 @@ test('Merging stored and live services should result in services with containers
     ]
   }
 
-  testData.candidateServices.push(candidateService)
+  testData.candidates.push(candidateService)
 
   const liveData = testData
 

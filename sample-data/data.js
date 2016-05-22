@@ -1,6 +1,6 @@
 module.exports = {
-  "tableName": "astro",
-  "runningServices": [
+  "table": "astro",
+  "running": [
     {
       "serviceName": "app1",
       "id": "a23nj53h3j4",
@@ -12,7 +12,7 @@ module.exports = {
       "ip": "192.168.1.8:80"
     }
   ],
-  "candidateServices": [
+  "candidates": [
     {
       "serviceName": "app1",
       "configMode": "host",

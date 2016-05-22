@@ -154,7 +154,7 @@ Cosmos.prototype.cleanse = (storedData, liveData) => {
     storedSrvcs = [storedSrvcs]
   }
 
-  const srvcsAttrSet = (attr) => new Set(liveData.runningServices.map(i => i[attr]))
+  const srvcsAttrSet = (attr) => new Set(liveData.running.map(i => i[attr]))
   const srvcAvailable = i => srvcsAttrSet('serviceName').has(i.serviceName)
   const containerAvailable = i => srvcsAttrSet('id').has(i.id)
 
@@ -189,11 +189,11 @@ Cosmos.prototype.merge = (updatedSrvcs, liveData) => {
   const storedServices = new Set(updatedSrvcs.map(i => i.serviceName))
 
   const storedSrvcsContainSrvc = i => storedServices.has(i.serviceName)
-  const filterCandidateSrvcs = fn => liveData.candidateServices.filter(fn)
+  const filterCandidateSrvcs = fn => liveData.candidates.filter(fn)
 
   const existingServices = filterCandidateSrvcs(storedSrvcsContainSrvc)
   const newSrvcs = filterCandidateSrvcs(i => !storedSrvcsContainSrvc(i))
-  const containersTiedToExistingSrvcs = liveData.runningServices.filter(storedSrvcsContainSrvc)
+  const containersTiedToExistingSrvcs = liveData.running.filter(storedSrvcsContainSrvc)
 
   updatedSrvcs.forEach(i => {
     existingServices.forEach(j => {
@@ -268,7 +268,7 @@ exports.handler = (event, context, callback) => {
   const handlerSuccess = configFile => context.done(null, configFile)
   const handlerFailure = err => context.done(err.stack)
 
-  Service.config({tableName: event.tableName})
+  Service.config({table: event.table})
 
   cosmos.maybeCreateTable()
     .then(cosmos.scanTable)
