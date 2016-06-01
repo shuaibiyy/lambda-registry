@@ -4,7 +4,6 @@
   "description": "HAProxy Configuration File Generation Using AWS Lambda and DynamoDB",
   "main": "index.js",
   "dependencies": {
-    "aws-sdk": "^2.3.3",
     "joi": "^8.0.5",
     "kew": "^0.7.0",
     "nunjucks": "^2.4.1",

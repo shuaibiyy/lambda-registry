@@ -1,12 +1,54 @@
 # Cosmos
 
-Cosmos provides an API endpoint that can be used to generate `haproxy.cfg` files based on its request payload. An example payload can be found [here](https://github.com/shuaibiyy/cosmos/blob/master/sample-data/data.json).
+Cosmos provides an API endpoint that can be used to generate `haproxy.cfg` files based on its request payload.
 
 Cosmos uses [AWS Lambda](https://aws.amazon.com/lambda/), [API Gateway](https://aws.amazon.com/api-gateway/) and [DynamoDB](https://aws.amazon.com/dynamodb/) to carry out its responsibilities. One major pain point of using Lambda and API Gateway is the difficulty of setting things up. Cosmos uses Terraform to ease that difficulty.
 
 You need to have [Terraform](https://www.terraform.io/) installed and a functioning [AWS](https://aws.amazon.com/) account to deploy this project.
 
-## Setup
+## Payload
+
+Format of Cosmos payload:
+
+    {
+      "table": "<dynamodb_table_name>",
+      "running": [{
+        "serviceName": "<service_name>",
+        "id": "<container_id>",
+        "ip": "<container_ip_address>"
+      }],
+      "candidates": [{
+        "serviceName": "<service_name>",
+        "port": <port_number>,
+        "configMode": "[ host | path]",
+        "predicate": "<e.g. domain_name>",
+        "cookie": "<cookie_id>",
+        "containers": [{
+          "id": "<container_id>",
+          "ip": "<container_ip_address>"
+        }]
+      }]
+    }
+Sample payloads can be found in the sample-data directory.
+
+### Descriptions of Parameters
+
+- table: name of DynamoDB table where configurations will be stored.
+- running: instances of services running within the weave network.
+- candidates: instances that are new to the weave network and do not yet exist in the HAProxy config.
+- configMode: type of routing. It can be either `path` or `host`.
+           In `path` mode, the URL path is used to determine which backend to forward the request to.
+           In `host` mode, the HTTP host header is used to determine which backend to forward the request to.
+           Defaults to `host` mode.
+- serviceName: name of service the containers belong to.
+- port: port number where service can be found.
+- predicate: value used along with mode to determine which service a request will be forwarded to.
+                `path` mode example: `acl <cluster> url_beg /<predicate>`.
+                `host` mode example: `acl <cluster> hdr(host) -i <predicate>`.
+- cookie: name of cookie to be used for sticky sessions. If not defined, sticky sessions will not be configured.
+- containers: key-value pairs of container ids and their corresponding IP addresses.
+
+## Deployment
 
 Follow these steps to deploy:
 

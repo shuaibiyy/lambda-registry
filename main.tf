@@ -1,6 +1,6 @@
 provider "aws" {
-  access_key = "${var.aws_access_key}"
-  secret_key = "${var.aws_secret_key}"
+  access_key = "${var.access_key}"
+  secret_key = "${var.secret_key}"
   region = "${var.region}"
 }
 
@@ -13,11 +13,6 @@ resource "aws_iam_role_policy" "test_policy" {
 resource "aws_iam_role" "cosmos_iam" {
   name = "cosmos_iam"
   assume_role_policy = "${file("policies/lambda-role.json")}"
-}
-
-resource "aws_s3_bucket" "cosmos" {
-  bucket = "${var.s3_bucket}"
-  acl = "private"
 }
 
 resource "aws_s3_bucket_object" "lambda_function" {
@@ -36,7 +31,7 @@ resource "aws_lambda_function" "cosmos_lambda" {
   runtime = "nodejs4.3"
   timeout = 20
   source_code_hash = "${base64sha256(file("cosmos.zip"))}"
-  depends_on = ["aws_s3_bucket.cosmos"]
+  depends_on = ["aws_s3_bucket_object.lambda_function"]
 }
 
 resource "aws_api_gateway_rest_api" "cosmos_api" {

@@ -19,25 +19,27 @@ test('Cleansed stored data should not contain services and containers that no lo
 
   const storedServices = [{
     "serviceName": "app1",
+    "port": 80,
     "configMode": "host",
     "predicate": "first.example.com",
     "cookie": "JSESSIONID",
     "containers": [
       {
         "id": "jk3243j54jl",
-        "ip": "192.168.1.8:80"
+        "ip": "192.168.1.8"
       }
     ]
   },
   {
     "serviceName": "app2",
+    "port": 80,
     "configMode": "host",
     "predicate": "second.example.com",
     "cookie": "JSESSIONID",
     "containers": [
       {
         "id": "czh32m2ob43",
-        "ip": "192.168.1.10:80"
+        "ip": "192.168.1.10"
       }
     ]
   }]
@@ -52,9 +54,10 @@ test('Cleansed stored data should not contain services and containers that no lo
       predicate: 'first.example.com',
       containers: [{
         "id": "jk3243j54jl",
-        "ip": "192.168.1.8:80"
+        "ip": "192.168.1.8"
       }],
       serviceName: 'app1',
+      port: 80,
       cookie: 'JSESSIONID'
     }]
 
@@ -73,30 +76,32 @@ test('Merging stored and live services should result in services with containers
 
   const storedServices = [{
     "serviceName": "app1",
+    "port": 80,
     "configMode": "host",
     "predicate": "first.example.com",
     "cookie": "JSESSIONID",
     "containers": [
       {
         "id": "jk3243j54jl",
-        "ip": "192.168.1.8:80"
+        "ip": "192.168.1.8"
       }
     ]
   }]
 
   const candidateService = {
     "serviceName": "app2",
+    "port": 80,
     "configMode": "host",
     "predicate": "second.example.com",
     "cookie": "JSESSIONID",
     "containers": [
       {
         "id": "das843j3h3k",
-        "ip": "192.168.1.10:80"
+        "ip": "192.168.1.10"
       },
       {
         "id": "fds32k4354f",
-        "ip": "192.168.1.11:80"
+        "ip": "192.168.1.11"
       }
     ]
   }
@@ -107,31 +112,33 @@ test('Merging stored and live services should result in services with containers
 
   const updatedSrvcs = [{
     serviceName: 'app1',
+    "port": 80,
     configMode: 'host',
     predicate: 'first.example.com',
     cookie: 'JSESSIONID',
     containers: [{
       "id": "jk3243j54jl",
-      "ip": "192.168.1.8:80"
+      "ip": "192.168.1.8"
     },
     {
       "id": "a23nj53h3j4",
-      "ip": "192.168.1.9:80"
+      "ip": "192.168.1.9"
     }]
   }]
 
   const newSrvcs = [{
     "serviceName": "app2",
+    "port": 80,
     "configMode": "host",
     "predicate": "second.example.com",
     "cookie": "JSESSIONID",
     "containers": [{
       "id": "das843j3h3k",
-      "ip": "192.168.1.10:80"
+      "ip": "192.168.1.10"
     },
     {
       "id": "fds32k4354f",
-      "ip": "192.168.1.11:80"
+      "ip": "192.168.1.11"
     }]
   }]
 

@@ -3,16 +3,40 @@
 /**
  * Provide an event that contains an array of objects with the following keys:
  *
- *   - configMode: type of routing. It can be either `path` or `host`.
+ * {
+ *   "table": "<dynamodb_table_name>",
+ *   "running": [{
+ *     "serviceName": "<service_name>",
+ *     "id": "<container_id>",
+ *     "ip": "<container_ip_address>"
+ *   }],
+ *   "candidates": [{
+ *     "serviceName": "<service_name>",
+ *     "port": <port_number>,
+ *     "configMode": "[ host | path]",
+ *     "predicate": "<e.g. domain_name>",
+ *     "cookie": "<cookie_id>",
+ *     "containers": [{
+ *       "id": "<container_id>",
+ *       "ip": "<container_ip_address>"
+ *     }]
+ *   }]
+ * }
+ *
+ * - table: name of DynamoDB table where configurations will be stored.
+ * - running: instances of services running within the weave network.
+ * - candidates: instances that are new to the weave network and do not yet exist in the HAProxy config.
+ * - configMode: type of routing. It can be either `path` or `host`.
  *           In `path` mode, the URL path is used to determine which backend to forward the request to.
  *           In `host` mode, the HTTP host header is used to determine which backend to forward the request to.
  *           Defaults to `host` mode.
- *   - serviceName: name of service the containers belong to.
- *   - predicate: value used along with mode to determine which service a request will be forwarded to.
+ * - serviceName: name of service the containers belong to.
+ * - port: port number where service can be found.
+ * - predicate: value used along with mode to determine which service a request will be forwarded to.
  *                `path` mode example: `acl <cluster> url_beg /<predicate>`.
  *                `host` mode example: `acl <cluster> hdr(host) -i <predicate>`.
- *   - cookie: name of cookie to be used for sticky sessions. If not defined, sticky sessions will not be configured.
- *   - containers: key-value pairs of container ids and their corresponding IP addresses.
+ * - cookie: name of cookie to be used for sticky sessions. If not defined, sticky sessions will not be configured.
+ * - containers: key-value pairs of container ids and their corresponding IP addresses.
  *
  * Visit sample-data directory for sample payloads.
  *
@@ -29,6 +53,7 @@ const Service = DynamoDB.define('Service', {
   schema: {
     serviceName: Joi.string(),
     configMode: Joi.string(),
+    port: [Joi.string(), Joi.number()],
     cookie: Joi.string(),
     predicate: Joi.string(),
     containers: Joi.array().items(Joi.object().keys({
@@ -76,7 +101,7 @@ Cosmos.prototype.maybeCreateTable = () => {
       defer.resolve('Table created.')
   }
 
-  const describeCallback = (err, data) => {
+  const describeCallback = (err) => {
     if (err)
       if (err.code === 'ResourceNotFoundException')
         DynamoDB.createTables({
@@ -166,7 +191,12 @@ Cosmos.prototype.cleanse = (storedData, liveData) => {
   return { unavailableSrvcs, availableSrvcs }
 }
 
-
+/**
+ * Remove services that no longer exist from DynamoDB.
+ *
+ * @param services
+ * @returns {!Promise.<RESULT>|Promise.<T>}
+ */
 Cosmos.prototype.persistCleansedData = (services) => {
   const deferreds = services.unavailableSrvcs.map(i => {
     let defer = Q.defer()
@@ -186,17 +216,17 @@ Cosmos.prototype.persistCleansedData = (services) => {
  * @returns {*}
  */
 Cosmos.prototype.merge = (updatedSrvcs, liveData) => {
-  const storedServices = new Set(updatedSrvcs.map(i => i.serviceName))
+  const storedSrvcs = new Set(updatedSrvcs.map(i => i.serviceName))
 
-  const storedSrvcsContainSrvc = i => storedServices.has(i.serviceName)
+  const storedSrvcsContainSrvc = i => storedSrvcs.has(i.serviceName)
   const filterCandidateSrvcs = fn => liveData.candidates.filter(fn)
 
-  const existingServices = filterCandidateSrvcs(storedSrvcsContainSrvc)
+  const existingSrvcs = filterCandidateSrvcs(storedSrvcsContainSrvc)
   const newSrvcs = filterCandidateSrvcs(i => !storedSrvcsContainSrvc(i))
   const containersTiedToExistingSrvcs = liveData.running.filter(storedSrvcsContainSrvc)
 
   updatedSrvcs.forEach(i => {
-    existingServices.forEach(j => {
+    existingSrvcs.forEach(j => {
       if (i.serviceName === j.serviceName)
         i.containers = i.containers.concat(j.containers)
     })
@@ -256,9 +286,8 @@ exports.Cosmos = Cosmos
  *
  * @param event
  * @param context
- * @param callback
  */
-exports.handler = (event, context, callback) => {
+exports.handler = (event, context) => {
   console.log('Received event:', JSON.stringify(event, null, 2))
 
   const cosmos = new Cosmos()
