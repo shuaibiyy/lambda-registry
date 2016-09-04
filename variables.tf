@@ -28,5 +28,5 @@ variable "lambda_function_name" {
 
 variable "s3_bucket" {
   description = "S3 bucket where the lambda function code will be stored."
-  default = "flexisaf-cosmos-lambda"
+  default = "mycosmos"
 }

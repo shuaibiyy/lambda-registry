@@ -4,7 +4,11 @@ Cosmos provides an API endpoint that can be used to generate `haproxy.cfg` files
 
 Cosmos uses [AWS Lambda](https://aws.amazon.com/lambda/), [API Gateway](https://aws.amazon.com/api-gateway/) and [DynamoDB](https://aws.amazon.com/dynamodb/) to carry out its responsibilities. One major pain point of using Lambda and API Gateway is the difficulty of setting things up. Cosmos uses Terraform to ease that difficulty.
 
+## Requirements
+
 You need to have [Terraform](https://www.terraform.io/) installed and a functioning [AWS](https://aws.amazon.com/) account to deploy this project.
+
+You need to create an S3 bucket first.
 
 ## Payload
 
