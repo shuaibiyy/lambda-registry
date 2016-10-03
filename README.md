@@ -1,8 +1,9 @@
-# Cosmos
+# Lambda-Registry
+## Cloud-based Service Registry
 
-Cosmos provides an API endpoint that can be used to generate `haproxy.cfg` files based on its request payload.
+Lambda-Registry provides an API endpoint that can be used to generate `haproxy.cfg` files based on its request payload.
 
-Cosmos uses [AWS Lambda](https://aws.amazon.com/lambda/), [API Gateway](https://aws.amazon.com/api-gateway/) and [DynamoDB](https://aws.amazon.com/dynamodb/) to carry out its responsibilities. One major pain point of using Lambda and API Gateway is the difficulty of setting things up. Cosmos uses Terraform to ease that difficulty.
+It uses [AWS Lambda](https://aws.amazon.com/lambda/), [API Gateway](https://aws.amazon.com/api-gateway/) and [DynamoDB](https://aws.amazon.com/dynamodb/) to carry out its responsibilities. One major pain point of using Lambda and API Gateway is the difficulty of setting things up. This project uses Terraform to ease that difficulty.
 
 ## Requirements
 
@@ -10,9 +11,9 @@ You need to have [Terraform](https://www.terraform.io/) installed and a function
 
 You need to create an S3 bucket first.
 
-## Payload
+## Request Payload
 
-Format of Cosmos payload:
+Format of a request payload to lambda-registry:
 
     {
       "table": "<dynamodb_table_name>",
@@ -58,7 +59,7 @@ Follow these steps to deploy:
 
 1. Clone this project and `cd` into it.
 2. Install npm modules: `npm install --production`
-3. Compress the project: `zip -r cosmos.zip .`.
+3. Compress the project: `zip -r lambda-registry.zip .`.
 4. Deploy the project by simply invoking `terraform apply`. You'll be asked for your AWS credentials. If you don't want to be prompted, you can add your credentials to the `variables.tf` file or run the setup using:
 ```bash
 $ terraform apply -var 'aws_access_key={your_aws_access_key}' \
@@ -70,15 +71,13 @@ To tear down:
 $ terraform destroy
 ```
 
-You can find the Invoke URL for Cosmos endpoint via the API Gateway service's console. The steps look like: `Amazon API Gateway | APIs > cosmos > Stages > api`.
+You can find the Invoke URL for lambda-registry endpoint via the API Gateway service's console. The steps look like: `Amazon API Gateway | APIs > lambda-registry > Stages > api`.
 
 ## Usage
 
-Cosmos was written to fulfill the deployment architecture described here: [HAProxy Configuration Management with Cosmos and Cosmonaut](https://callme.ninja/haproxy-config-mgmt-cosmos-cosmonaut/).
+Lambda-Registry can be used standalone or in conjunction with [Cosmonaut](https://github.com/shuaibiyy/cosmonaut). Cosmonaut is a process that can listen to events from a docker daemon, retrieve a HAProxy configuration from lambda-registry based on the services running on its host, and use the config to reload its host's HAProxy container.
 
-Cosmos can be used standalone or in conjunction with [Cosmonaut](https://github.com/shuaibiyy/cosmonaut). Cosmonaut is a process that can listen to events from a docker daemon, retrieve a HAProxy configuration from Cosmos based on the services running on its host, and use the config to reload its host's HAProxy container.
-
-If you're using Cosmos standalone, you can generate a config file by running these commands:
+If you're using lambda-registry standalone, you can generate a config file by running these commands:
 ```bash
 $ curl -o /tmp/haproxycfg -H "Content-Type: application/json" --data @sample-data/data.json <invoke_url>/generate
 $ echo "$(</tmp/haproxycfg)" > haproxy.cfg
