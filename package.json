@@ -1,5 +1,5 @@
 {
-  "name": "cosmos",
+  "name": "lambda-registry",
   "version": "1.0.0",
   "description": "HAProxy Configuration File Generation Using AWS Lambda and DynamoDB",
   "main": "index.js",

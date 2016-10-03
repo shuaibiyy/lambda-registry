@@ -75,6 +75,9 @@ You can find the Invoke URL for lambda-registry endpoint via the API Gateway ser
 
 ## Usage
 
+-Cosmos was written to fulfil the deployment architecture described here: [HAProxy Configuration Management with Lambda-Registry and Cosmonaut](https://shuaib.me/haproxy-config-mgmt-lambda-registry-cosmonaut/).
+
+
 Lambda-Registry can be used standalone or in conjunction with [Cosmonaut](https://github.com/shuaibiyy/cosmonaut). Cosmonaut is a process that can listen to events from a docker daemon, retrieve a HAProxy configuration from lambda-registry based on the services running on its host, and use the config to reload its host's HAProxy container.
 
 If you're using lambda-registry standalone, you can generate a config file by running these commands:
