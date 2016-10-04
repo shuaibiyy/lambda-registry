@@ -2,7 +2,7 @@
 
 Lambda-Registry is a service registry for HAProxy-backed services. It runs on [AWS Lambda](https://aws.amazon.com/lambda/) and leverages [API Gateway](https://aws.amazon.com/api-gateway/) and [DynamoDB](https://aws.amazon.com/dynamodb/) to provide an API endpoint that generates `haproxy.cfg` files based on request payloads.
 
-Lambda-Registry generates HAProxy configurations for hosts running services in containers behind a HAProxy. Lambda-Registry receives a payload describing the state of services and returns a HAProxy config that matches that state. It also stores the information about past services, so their configurations persist across future HAProxy configs as long as they have running instances, i.e. containers. See [test.js](https://github.com/shuaibiyy/lambda-registry/blob/master/test.js) for examples of how services are described.
+Lambda-Registry generates HAProxy configurations for hosts running services in containers behind a HAProxy. Lambda-Registry receives a payload describing the state of services and returns a HAProxy config that matches that state. It also stores information about past services, so their configurations persist across future HAProxy configs as long as they have running instances, i.e. containers. See [test.js](https://github.com/shuaibiyy/lambda-registry/blob/master/test.js) for examples of how services are described.
 
 One major pain point of using Lambda and API Gateway is the difficulty of setting things up. This project uses Terraform to ease that difficulty.
 
