@@ -6,9 +6,13 @@ One major pain point of using Lambda and API Gateway is the difficulty of settin
 
 ## Requirements
 
-You need to have [Terraform](https://www.terraform.io/) installed and a functioning [AWS](https://aws.amazon.com/) account to deploy this project.
-
-You need to create an S3 bucket first.
+* A machine with [Terraform](https://www.terraform.io/) installed.
+* A functioning [AWS](https://aws.amazon.com/) account with access to these AWS services:
+  * AWS Lambda
+  * API Gateway
+  * DynamoDB
+  * S3
+* An S3 bucket where the AWS lambda artifact will be stored.
 
 ## Request Payload
 
