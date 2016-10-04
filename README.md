@@ -1,9 +1,8 @@
 # Lambda-Registry
-## Cloud-based Service Registry
 
-Lambda-Registry provides an API endpoint that can be used to generate `haproxy.cfg` files based on its request payload.
+Lambda-Registry is a service registry for HAProxy-backed services. It runs on [AWS Lambda](https://aws.amazon.com/lambda/) and leverages [API Gateway](https://aws.amazon.com/api-gateway/) and [DynamoDB](https://aws.amazon.com/dynamodb/) to provide an API endpoint that generates `haproxy.cfg` files based on request payloads.
 
-It uses [AWS Lambda](https://aws.amazon.com/lambda/), [API Gateway](https://aws.amazon.com/api-gateway/) and [DynamoDB](https://aws.amazon.com/dynamodb/) to carry out its responsibilities. One major pain point of using Lambda and API Gateway is the difficulty of setting things up. This project uses Terraform to ease that difficulty.
+One major pain point of using Lambda and API Gateway is the difficulty of setting things up. This project uses Terraform to ease that difficulty.
 
 ## Requirements
 
