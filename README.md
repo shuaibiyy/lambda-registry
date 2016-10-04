@@ -2,6 +2,8 @@
 
 Lambda-Registry is a service registry for HAProxy-backed services. It runs on [AWS Lambda](https://aws.amazon.com/lambda/) and leverages [API Gateway](https://aws.amazon.com/api-gateway/) and [DynamoDB](https://aws.amazon.com/dynamodb/) to provide an API endpoint that generates `haproxy.cfg` files based on request payloads.
 
+Lambda-Registry generates HAProxy configurations for hosts running services in containers behind a HAProxy. Lambda-Registry receives a payload describing the state of services and returns a HAProxy config that matches that state. It also stores the data of past services, so their configurations persist across future HAProxy configs as long as they have running instances, i.e. containers. See [test.js](https://github.com/shuaibiyy/lambda-registry/blob/master/test.js) for examples of how services are described.
+
 One major pain point of using Lambda and API Gateway is the difficulty of setting things up. This project uses Terraform to ease that difficulty.
 
 ## Requirements
@@ -78,7 +80,7 @@ You can find the Invoke URL for lambda-registry endpoint via the API Gateway ser
 
 ## Usage
 
--Cosmos was written to fulfil the deployment architecture described here: [HAProxy Configuration Management with Lambda-Registry and Cosmonaut](https://shuaib.me/haproxy-config-mgmt-lambda-registry-cosmonaut/).
+Lambda-Registry was written to fulfil the deployment architecture described here: [HAProxy Configuration Management with Lambda-Registry and Cosmonaut](https://shuaib.me/haproxy-config-mgmt-lambda-registry-cosmonaut/).
 
 
 Lambda-Registry can be used standalone or in conjunction with [Cosmonaut](https://github.com/shuaibiyy/cosmonaut). Cosmonaut is a process that can listen to events from a docker daemon, retrieve a HAProxy configuration from lambda-registry based on the services running on its host, and use the config to reload its host's HAProxy container.
